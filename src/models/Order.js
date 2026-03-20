@@ -2,8 +2,7 @@ import mongoose from 'mongoose'
 
 const orderItemSchema = new mongoose.Schema({
   dishId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Dish',
+    type: String,
     required: true
   },
   dishName: {
