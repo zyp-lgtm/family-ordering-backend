@@ -31,7 +31,23 @@ app.use('/api/order', orderRoutes)
 
 // 健康检查
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: '家庭点餐 API 服务正常运行' })
+  const dbState = mongoose.connection.readyState
+  const dbStates = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  }
+
+  res.json({
+    status: 'ok',
+    message: '家庭点餐 API 服务正常运行',
+    database: {
+      state: dbStates[dbState],
+      ready: dbState === 1,
+      host: process.env.MONGODB_URI ? 'configured' : 'not configured'
+    }
+  })
 })
 
 // 根路径
