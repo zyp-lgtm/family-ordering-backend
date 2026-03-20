@@ -80,10 +80,22 @@ router.post('/login-test', async (req, res) => {
   try {
     const { nickname, role } = req.body
 
+    console.log('测试登录请求:', { nickname, role })
+
+    // 检查 MongoDB 连接状态
+    if (mongoose.connection.readyState !== 1) {
+      console.error('MongoDB 未连接，状态:', mongoose.connection.readyState)
+      return res.status(500).json({
+        error: '数据库未连接',
+        message: 'MongoDB 连接失败，请检查 Railway 配置'
+      })
+    }
+
     // 创建或更新测试用户
     let user = await User.findOne({ openid: 'test_openid_' + (nickname || 'test') })
 
     if (!user) {
+      console.log('创建新测试用户')
       user = new User({
         openid: 'test_openid_' + (nickname || 'test'),
         nickname: nickname || '测试用户',
@@ -91,17 +103,21 @@ router.post('/login-test', async (req, res) => {
         role: role || 'member'
       })
     } else {
+      console.log('更新已有测试用户:', user._id)
       user.nickname = nickname || '测试用户'
       user.role = role || 'member'
     }
 
     await user.save()
+    console.log('用户保存成功:', user._id)
 
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET || 'default_secret',
       { expiresIn: '30d' }
     )
+
+    console.log('Token 生成成功')
 
     res.json({
       success: true,
@@ -118,7 +134,12 @@ router.post('/login-test', async (req, res) => {
     })
   } catch (error) {
     console.error('测试登录失败:', error)
-    res.status(500).json({ error: '测试登录失败', message: error.message })
+    console.error('错误堆栈:', error.stack)
+    res.status(500).json({
+      error: '测试登录失败',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    })
   }
 })
 
