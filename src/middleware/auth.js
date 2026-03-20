@@ -15,8 +15,8 @@ export async function authenticate(req, res, next) {
     // 验证 token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_secret')
 
-    // 查找用户
-    const user = await User.findById(decoded.userId)
+    // 查找用户（获取所有字段）
+    const user = await User.findById(decoded.userId).select('-__v')
 
     if (!user) {
       return res.status(401).json({ error: '用户不存在' })

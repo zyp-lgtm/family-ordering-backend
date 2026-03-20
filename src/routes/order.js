@@ -9,25 +9,45 @@ router.post('/submit', authenticate, requireFamily, async (req, res) => {
   try {
     const { items } = req.body
 
-    if (!items || items.length === 0) {
+    console.log('提交订单请求体:', JSON.stringify(req.body))
+    console.log('用户信息:', {
+      _id: req.user._id,
+      nickname: req.user.nickname,
+      familyId: req.user.familyId
+    })
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: '订单不能为空' })
+    }
+
+    // 验证必需字段
+    if (!req.user.familyId) {
+      return res.status(400).json({ error: '用户未加入家庭' })
     }
 
     // 计算总金额
     const totalAmount = items.reduce((sum, item) => {
-      return sum + (item.price || 0) * (item.quantity || 0)
+      const price = Number(item.price) || 0
+      const quantity = Number(item.quantity) || 0
+      return sum + price * quantity
     }, 0)
+
+    console.log('订单总金额:', totalAmount)
 
     const order = new Order({
       familyId: req.user.familyId,
       userId: req.user._id,
-      userName: req.user.nickname,
+      userName: req.user.nickname || '用户',
       items,
       totalAmount,
       status: 'pending'
     })
 
+    console.log('订单对象创建成功:', order._id)
+
     await order.save()
+
+    console.log('订单保存成功')
 
     res.json({
       success: true,
@@ -35,7 +55,12 @@ router.post('/submit', authenticate, requireFamily, async (req, res) => {
     })
   } catch (error) {
     console.error('提交订单失败:', error)
-    res.status(500).json({ error: '提交订单失败', message: error.message })
+    console.error('错误堆栈:', error.stack)
+    res.status(500).json({
+      error: '提交订单失败',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    })
   }
 })
 
