@@ -9,7 +9,7 @@ router.post('/submit', authenticate, requireFamily, async (req, res) => {
   try {
     const { items } = req.body
 
-    console.log('提交订单请求体:', JSON.stringify(req.body))
+    console.log('提交订单请求体:', JSON.stringify(req.body, null, 2))
     console.log('用户信息:', {
       _id: req.user._id,
       nickname: req.user.nickname,
@@ -25,29 +25,61 @@ router.post('/submit', authenticate, requireFamily, async (req, res) => {
       return res.status(400).json({ error: '用户未加入家庭' })
     }
 
-    // 计算总金额
-    const totalAmount = items.reduce((sum, item) => {
-      const price = Number(item.price) || 0
-      const quantity = Number(item.quantity) || 0
-      return sum + price * quantity
+    // 转换 ObjectId 为字符串
+    const familyId = req.user.familyId.toString()
+    const userId = req.user._id.toString()
+    const userName = req.user.nickname || '用户'
+
+    console.log('转换后的值:', { familyId, userId, userName })
+
+    // 验证订单项并映射字段
+    const orderItems = items.map((item, index) => {
+      // 支持前端 _id 和后端 dishId 两种格式
+      const dishId = item.dishId || item._id
+
+      if (!dishId) {
+        throw new Error(`第 ${index + 1} 个菜品缺少 ID`)
+      }
+      if (!item.dishName) {
+        throw new Error(`第 ${index + 1} 个菜品缺少名称`)
+      }
+      if (item.price === undefined || item.price === null) {
+        throw new Error(`第 ${index + 1} 个菜品缺少价格`)
+      }
+      if (!item.quantity || item.quantity < 1) {
+        throw new Error(`第 ${index + 1} 个菜品数量无效`)
+      }
+
+      return {
+        dishId: String(dishId),
+        dishName: item.dishName,
+        price: Number(item.price),
+        quantity: Number(item.quantity)
+      }
+    })
+
+    // 计算总金额（使用映射后的 orderItems）
+    const totalAmount = orderItems.reduce((sum, item) => {
+      return sum + item.price * item.quantity
     }, 0)
 
     console.log('订单总金额:', totalAmount)
+    console.log('订单项数量:', orderItems.length)
 
     const order = new Order({
-      familyId: req.user.familyId,
-      userId: req.user._id,
-      userName: req.user.nickname || '用户',
-      items,
+      familyId,
+      userId,
+      userName,
+      items: orderItems,
       totalAmount,
       status: 'pending'
     })
 
-    console.log('订单对象创建成功:', order._id)
+    console.log('订单对象创建成功')
 
     await order.save()
 
-    console.log('订单保存成功')
+    console.log('订单保存成功, _id:', order._id)
 
     res.json({
       success: true,
@@ -67,9 +99,12 @@ router.post('/submit', authenticate, requireFamily, async (req, res) => {
 // 获取我的订单
 router.get('/my', authenticate, requireFamily, async (req, res) => {
   try {
+    const familyId = req.user.familyId.toString()
+    const userId = req.user._id.toString()
+
     const orders = await Order.find({
-      familyId: req.user.familyId,
-      userId: req.user._id
+      familyId: familyId,
+      userId: userId
     }).sort({ createTime: -1 })
 
     res.json({
@@ -90,8 +125,10 @@ router.get('/family', authenticate, requireFamily, async (req, res) => {
       return res.status(403).json({ error: '只有户主可以查看家庭订单' })
     }
 
+    const familyId = req.user.familyId.toString()
+
     const orders = await Order.find({
-      familyId: req.user.familyId
+      familyId: familyId
     }).sort({ createTime: -1 })
 
     res.json({
@@ -119,9 +156,11 @@ router.put('/:id/confirm', authenticate, requireFamily, async (req, res) => {
       return res.status(400).json({ error: '无效的操作' })
     }
 
+    const familyId = req.user.familyId.toString()
+
     const order = await Order.findOne({
       _id: id,
-      familyId: req.user.familyId
+      familyId: familyId
     })
 
     if (!order) {

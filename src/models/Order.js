@@ -22,14 +22,12 @@ const orderItemSchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema({
   familyId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Family',
+    type: String,
     required: true,
     index: true
   },
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: true
   },
   userName: {
@@ -43,7 +41,8 @@ const orderSchema = new mongoose.Schema({
   totalAmount: {
     type: Number,
     required: true,
-    min: 0
+    min: 0,
+    default: 0
   },
   status: {
     type: String,
