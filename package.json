@@ -1,0 +1,22 @@
+{
+  "name": "family-ordering-backend",
+  "version": "1.0.0",
+  "description": "家庭点餐小程序后端 API",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": ["express", "mongodb", "wechat-miniprogram"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.2",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
