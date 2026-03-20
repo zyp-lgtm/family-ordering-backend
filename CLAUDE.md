@@ -10,6 +10,13 @@
 
 **项目描述**：为家庭点餐微信小程序提供后端服务，包括用户认证、家庭管理、菜品管理、订单管理等功能。
 
+**当前版本：** v1.0.0-stable
+
+**重要说明：**
+- ⚠️ 图片上传功能已回滚（2026-03-20）
+- ✅ 核心功能稳定运行
+- 🔄 图片功能待后续实现
+
 **技术栈**：
 - **运行环境**：Node.js
 - **Web 框架**：Express.js
@@ -688,7 +695,21 @@ curl -X POST https://family-ordering-backend-production.up.railway.app/api/order
 
 ## 更新日志
 
-### 2026-03-20
+### 2026-03-20 下午（回滚）
+- ⚠️ 回滚图片上传功能
+- ✅ 恢复到稳定版本（commit 49d93d8）
+- 🔄 移除 Base64 存储代码
+- 🔄 移除图片上传接口
+- ✅ 核心功能保持稳定
+
+### 2026-03-20 上午（图片上传尝试）
+- 🔄 尝试实现 Cloudflare R2 对象存储
+- 🔄 尝试实现 Base64 图片存储
+- 🔄 尝试实现 ImgBB 图片上传
+- ⚠️ Railway 部署遇到多次失败
+- ⚠️ 回滚以保持核心功能稳定
+
+### 2026-03-20 上午（核心功能）
 - ✅ 修复订单提交 ObjectId 类型问题
 - ✅ Order 模型改用 String 类型（familyId, userId, dishId）
 - ✅ 添加前端 _id 到 dishId 的映射
@@ -703,7 +724,84 @@ curl -X POST https://family-ordering-backend-production.up.railway.app/api/order
 
 ---
 
-## 相关资源
+## 图片上传功能历史
+
+### 已尝试的方案
+
+#### 方案 1：Cloudflare R2 对象存储
+**状态：** ❌ 放弃
+**原因：**
+- Cloudflare R2 创建 bucket 失败
+- 配置步骤复杂
+- 需要多个 API 密钥配置
+
+**代码位置：**
+- `src/config/r2.js`（已删除）
+- `src/utils/upload.js`（已删除）
+
+#### 方案 2：Base64 存储
+**状态：** ❌ 回滚
+**实现内容：**
+- 前端直接转换图片为 Base64
+- 后端设置 10mb 请求体大小限制
+- 图片直接存储在 MongoDB
+
+**遇到的问题：**
+- Railway 部署："service unavailable"
+- PayloadTooLargeError: request entity too large
+- 微信小程序域名白名单限制
+
+**代码修改：**
+- `server.js`: 增加请求体大小限制
+- `src/routes/dish.js`: 添加 /upload-image 接口
+- `src/models/Dish.js`: 更新 image 字段注释
+
+#### 方案 3：ImgBB 图片上传
+**状态：** ❌ 回滚
+**实现方式：**
+- 前端直接调用 ImgBB API
+- 后端无需修改
+- 返回图片 URL
+
+**回滚原因：**
+- 与其他图片功能一同回滚
+- 保持代码库一致性
+
+### 推荐的后续实现方案
+
+#### 方案 A：前端直接调用 ImgBB（推荐）⭐
+**优势：**
+- ✅ 后端无需修改
+- ✅ 小程序可直接调用
+- ✅ 免费 API，无服务器成本
+- ✅ 返回 CDN 加速的图片 URL
+
+**实现步骤：**
+1. 注册 ImgBB：https://imgbb.com/
+2. 获取 API Key
+3. 前端实现上传功能
+4. 保存图片 URL 到 dish.image 字段
+
+#### 方案 B：使用 Cloudinary
+**优势：**
+- ✅ 免费 CDN
+- ✅ 图片自动优化
+- ✅ 小程序 SDK 支持
+- ✅ 官方文档完善
+
+#### 方案 C：本地开发测试
+**临时方案：**
+- 本地运行后端
+- 使用本地文件存储
+- 仅用于开发和测试
+
+### 当前状态
+- ✅ 核心功能稳定运行
+- ⚠️ 图片字段保留但未使用
+- 🔄 菜品卡片使用 Emoji 占位符
+- 📝 后续可选择合适的方案实现
+
+---
 
 - [Express.js 官方文档](https://expressjs.com/)
 - [Mongoose 官方文档](https://mongoosejs.com/docs/)
